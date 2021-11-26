@@ -2,8 +2,11 @@ package com.example;
 
 import sim.engine.*;
 import sim.field.grid.ObjectGrid2D;
+
+import java.util.ArrayList;
 import java.util.Scanner;
 import java.io.*;
+import java.util.ArrayList;
 
 public class GameBoard extends SimState {
 
@@ -19,12 +22,17 @@ public class GameBoard extends SimState {
     public String[] strategies = {"bruteForce","smart"};
 
     //Folder enthält die CSV Dateien
-    static File folder = new File(csv_path);
+    public File folder = new File(csv_path);
     //Files ist ein Array der Pfade der CSV Dateien, hier wird zunächst nur die Länge des Arrays (Die Zahl der CSV Dateien) deklariert
-    static File[] files = new File[folder.listFiles().length];
+    public File[] files = new File[folder.listFiles().length];
     //Wenn die Klasse Gamboard gemacht wird wird mit csv bestimmt welche CSV genommen wird. Es soll damit die Erstellung des Gameboards mit jeder CSV geloopt werden
     //Temporär
     private int csv;
+
+    //Liste der Locations der nummerierten Mauern
+    ArrayList<Integer[]> numberedWallLocations = new ArrayList<Integer[]>();
+    ArrayList<Integer[]> emptyFieldLocations = new ArrayList<Integer[]>();
+    
 
     //Spielbrett als ObjectGrid2D
     public ObjectGrid2D field = null;
@@ -34,9 +42,8 @@ public class GameBoard extends SimState {
 
     public void start(){
         super.start();
-        setField();
-
-
+        this.setField();
+        
         //locationtest
         /*
         System.out.println(field.get(1,1));
@@ -51,28 +58,28 @@ public class GameBoard extends SimState {
         schedule.scheduleOnce(agent);
         schedule.step(this);
         
-        
     }
 
     public static void main(String[] args){
-        setFilepaths();
+        
         //Hier würde dann mithilfe des files Array geloopt werden und die Simulation mindestens einmal pro CSV ausgeführt werden
-        SimState board = new GameBoard(System.currentTimeMillis(), 0);
+        GameBoard board = new GameBoard(System.currentTimeMillis(), 0);
+        board.setFilepaths();
         board.start();
         
     }
 
-    public static void print(Object x){
+    public void print(Object x){
         //test
         System.out.println(x.toString());
     }
 
-    public static void setFilepaths(){
+    public void setFilepaths(){
         //files ist ein Array der CSV Dateien
-        files = folder.listFiles();
+        this.files = folder.listFiles();
     }
 
-    public static int[] returnCSVDimension(String pathToCsv){
+    public int[] returnCSVDimension(String pathToCsv){
         //Gibt die Spielfeldgröße aus, man könnte es auch statisch machen aber es ist elegant die Größe des Spielbretts dynamisch zu machen
         int rowCount = 0;
         int columnCount = 0;
@@ -94,10 +101,11 @@ public class GameBoard extends SimState {
         return lenghts;
     }
 
+    
     public void setField(){
         //Füllt das Sparse2DGrid mit Objekten, je nach CSV
         int[] size = returnCSVDimension(files[csv].toString());
-        field = new ObjectGrid2D(size[1], size[0]);
+        this.field = new ObjectGrid2D(size[1], size[0]);
         String[] rows;
         
         try{
@@ -110,16 +118,26 @@ public class GameBoard extends SimState {
                     }
                     else if(rows[column].equals("")){
                         field.set(column, row, new EmptyField());
+                        Integer[] temp = {column,row};
+                        emptyFieldLocations.add(temp);
                     }
                     else{
                         field.set(column, row, new Wall(Integer.parseInt(rows[column])));
+                        Integer[] temp = {column,row};
+                        numberedWallLocations.add(temp);
+                        
                     }
                 }   
             }
+
         } catch (FileNotFoundException e){
             System.out.println("File probably not found");
         }   
     }
+
+
+
+
 
     public void nothing(){
         //filereadertest
