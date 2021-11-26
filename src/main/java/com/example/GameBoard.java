@@ -30,12 +30,15 @@ public class GameBoard extends SimState {
     private int csv;
 
     //Liste der Locations der nummerierten Mauern
-    ArrayList<Integer[]> numberedWallLocations = new ArrayList<Integer[]>();
-    ArrayList<Integer[]> emptyFieldLocations = new ArrayList<Integer[]>();
+    public ArrayList<Integer[]> numberedWallLocations = new ArrayList<Integer[]>();
+    public ArrayList<Integer[]> emptyFieldLocations = new ArrayList<Integer[]>();
+    public ArrayList<Integer[]> placeableLocations = new ArrayList<Integer[]>();
     
 
     //Spielbrett als ObjectGrid2D
     public ObjectGrid2D field = null;
+
+
 
     //Das Spielfeld soll wie ein einfaches Array sein, die Spieler spawnen die Figuren an fixen stellen. Falls ein Spieler am Ursprungspunkt-2 ist kommt er auf ein neues kleines array dass die Ziellinie abbildet
     

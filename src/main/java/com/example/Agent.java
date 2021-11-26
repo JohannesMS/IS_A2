@@ -1,5 +1,7 @@
 package com.example;
 
+import java.security.DrbgParameters.Reseed;
+
 import sim.engine.*;
 import sim.field.grid.ObjectGrid2D;
 
@@ -10,7 +12,7 @@ public class Agent implements Steppable {
 //Wie entscheidet der Spieler wo was platziert wird? -> aus Expertenwissen bedienen
 
 //Strategie 1
-//Bei einem 25x25 Feld gibt es 2 hoch 25 Kombinationen, jede könnte probiert, validiert und benutzt oder verworfen werden. Laufzeittechnisch beschissen aber gut zum Vergleich
+//Bei einem 25x25 Feld gibt es 2 hoch 625 Kombinationen, jede könnte probiert, validiert und benutzt oder verworfen werden. Wenn ich den gesamten Speicher des Universums hätte würde das auch funktionieren
 //Strategie 2
 //Alle sicher platzierbaren Birnen platzieren, dann wie Strategie 1 verfahren. Reduziert den Suchbaum
 //Strategie 3
@@ -44,8 +46,29 @@ public class Agent implements Steppable {
         System.out.println("There are "+numPlaceableBulbs() + " fields in which a bulb could be placed");
         placeTrivialBulbs(2);
         System.out.println("There are "+numNotIlluminated() + " fields which are not illuminated");
-        System.out.println("There are "+numPlaceableBulbs() + " fields in which a bulb could be placed");
-        System.out.print(validateSolution());
+        System.out.println("There are "+numPlaceableBulbs() + " fields in which a bulb could be placed");        
+        System.out.println("No Bulb number constraint violation: "+validateNumBulbsOnWall());
+        System.out.println("Solution validated: " + validateSolution());
+
+        locationPlaceable();
+        System.out.println("Placeable Solution List:" + gameboard.placeableLocations.size());
+
+        int tempX;
+        int tempY;
+        while(numPlaceableBulbs()!=0){
+        for(int i = 1; i<gameboard.placeableLocations.size();i++){
+            tempX = gameboard.placeableLocations.get(i)[0];
+            tempY = gameboard.placeableLocations.get(i)[1];
+            setBulb(tempX, tempY);
+        }
+    }
+    
+    System.out.println("There are "+numNotIlluminated() + " fields which are not illuminated");
+    System.out.println("There are "+numPlaceableBulbs() + " fields in which a bulb could be placed");  
+        
+        
+        
+
 
         
 
@@ -55,9 +78,30 @@ public class Agent implements Steppable {
         if(!checkConstraintViolation(x, y)){
         tempBoard.set(x, y, new Bulb());
         illuminate(x, y);
+
+        if(!isOutOfBounds(x+1, y) && tempBoard.get(x+1, y).getClass() == Wall.class){
+            Wall tempWall = (Wall) tempBoard.get(x+1, y);
+            tempWall.numberLeftoverBulbs--;
+
+        }
+        if(!isOutOfBounds(x-1, y) && tempBoard.get(x-1, y).getClass() == Wall.class){
+            Wall tempWall = (Wall) tempBoard.get(x-1, y);
+            tempWall.numberLeftoverBulbs--;
+            
+        }
+        if(!isOutOfBounds(x, y+1) && tempBoard.get(x, y+1).getClass() == Wall.class){
+            Wall tempWall = (Wall) tempBoard.get(x, y+1);
+            tempWall.numberLeftoverBulbs--;
+            
+        }
+        if(!isOutOfBounds(x, y-1) && tempBoard.get(x, y-1).getClass() == Wall.class){
+            Wall tempWall = (Wall) tempBoard.get(x, y-1);
+            tempWall.numberLeftoverBulbs--;
+            
+        }
+        //Wenn bulb platiert wird muss Leftoverbulbs von den Wall neighbors dekrementiert werden, in der Hauptmethode unten wird nähmlich sonst nur eine Mauer dekrementiert
         }
     }
-
 
     public int numPlaceableBulbs(){
         int placeable= 0;
@@ -81,6 +125,21 @@ public class Agent implements Steppable {
             }
         }
         return notIlluminated;
+    }
+
+    public void locationPlaceable(){
+
+        for(int x = 0; x<tempBoard.width;x++){
+            for(int y = 0; y<tempBoard.height;y++){
+                if(isEmptyField(x, y)){
+                    EmptyField tempField = (EmptyField) tempBoard.get(x, y);
+                    if (!tempField.implaceable && !tempField.illuminated){
+                        Integer[] temp = {x,y};
+                        gameboard.placeableLocations.add(temp);
+                    }
+                }
+            }
+        }
     }
 
     public boolean checkConstraintViolation(int x, int y){
@@ -160,11 +219,7 @@ public class Agent implements Steppable {
         }
     }
 
-    public boolean validateSolution(){
-        //1. Die numbered Walls prüfen
-        //Ob birnen sich gegenseitig beleuchten wird während dem Platzieren geprüft
-        //Sind alle Felder beleuchetet?
-        //if(numNotIlluminated() == 0 && )
+    public boolean validateNumBulbsOnWall(){
         int tempX;
         int tempY;
         int bulbCounter;
@@ -181,16 +236,14 @@ public class Agent implements Steppable {
             if(isBulb(tempX,tempY+1)){bulbCounter++;}
             if(isBulb(tempX,tempY-1)){bulbCounter++;}
 
-            System.out.println("Wall number "+i);
-            System.out.println(bulbCounter);
-            System.out.println(tempWall.numberAdjascentBulbs);
-
             if(bulbCounter > tempWall.numberAdjascentBulbs){constraintViolation = true;}
         }
+        return !constraintViolation;
+    }
 
-        return constraintViolation;
-        //if(numNotIlluminated() == 0 && !constraintViolation) {return true;}
-        //else{return false;}
+    public boolean validateSolution(){
+        if(numNotIlluminated() == 0 && validateNumBulbsOnWall()){return true;}
+        else{return false;}
     }
 
     public void placeTrivialBulbs(int degreeOfSmartmode){
@@ -203,8 +256,6 @@ public class Agent implements Steppable {
 
 
         //check for implaceable fields in a x++ and y++ loop
-
-
         int smartmode = degreeOfSmartmode;
         boolean trivialTrigger;
         int tempX;
@@ -227,8 +278,9 @@ public class Agent implements Steppable {
             for(int i=0;i<gameboard.numberedWallLocations.size();i++){
                 tempFreeNeighbors = 0;
                 tempX = gameboard.numberedWallLocations.get(i)[0];
-                tempY = gameboard.numberedWallLocations.get(i)[1];
+                tempY = gameboard.numberedWallLocations.get(i)[1];    
                 Wall tempWall = (Wall) tempBoard.get(tempX, tempY);
+    
     
                 //Wenn die Mauer eine Null anzeigt wird die von neumann nachbarschaft als nicht platzierbar gekennezeichnet
                 if(tempWall.numberLeftoverBulbs == 0){
@@ -258,51 +310,31 @@ public class Agent implements Steppable {
                     continue;
                 }
     
+                //Wenn das Feld in der von neumann nachbarschaft leer ist, nicht beleuchetet wird und nicht als nicht platzierbar gekennzeichnet ist wird es als freier Nachbar gezählt
                 if(isEmptyField(tempX+1,tempY) && !isIlluminated(tempX+1, tempY) && !isImplaceable(tempX+1, tempY)){tempFreeNeighbors++;}
                 if(isEmptyField(tempX-1,tempY) && !isIlluminated(tempX-1, tempY) && !isImplaceable(tempX-1, tempY)){tempFreeNeighbors++;}
                 if(isEmptyField(tempX,tempY+1) && !isIlluminated(tempX, tempY+1) && !isImplaceable(tempX, tempY+1)){tempFreeNeighbors++;}
                 if(isEmptyField(tempX,tempY-1) && !isIlluminated(tempX, tempY-1) && !isImplaceable(tempX, tempY-1)){tempFreeNeighbors++;}
-                
+
                 if(tempWall.numberLeftoverBulbs == tempFreeNeighbors){
                     if(isEmptyField(tempX+1,tempY) && !isIlluminated(tempX+1, tempY) && !isImplaceable(tempX+1, tempY)){
                         setBulb(tempX+1, tempY);
-                        tempWall.numberLeftoverBulbs--;
                         if(smartmode==2){trivialTrigger = true;}
                     }
                     if(isEmptyField(tempX-1,tempY)  && !isIlluminated(tempX-1, tempY) && !isImplaceable(tempX-1, tempY)){
                         setBulb(tempX-1, tempY);
-                        tempWall.numberLeftoverBulbs--;
                         if(smartmode==2){trivialTrigger = true;}
                     }
                     if(isEmptyField(tempX,tempY+1) && !isIlluminated(tempX, tempY+1) && !isImplaceable(tempX, tempY+1)){
                         setBulb(tempX, tempY+1);
-                        tempWall.numberLeftoverBulbs--;
                         if(smartmode==2){trivialTrigger = true;}
                     }
                     if(isEmptyField(tempX,tempY-1) && !isIlluminated(tempX, tempY-1) && !isImplaceable(tempX, tempY-1)){
                         setBulb(tempX, tempY-1);
-                        tempWall.numberLeftoverBulbs--;
                         if(smartmode==2){trivialTrigger = true;}
                     }
                 }
             }
         } while(trivialTrigger == true);
-
-        }
-        
-        //Entweder alle Felder durchgehen oder
-        //Die Locations der Mauern speichern und hier aufrufen
-
-
-        //Wenn nummer der Wand == freie Emptyfields sind dann platzieren
-        //Wenn nummer 0 ist dann Felder als implaceable markieren
-        //Wenn ein Feld von Mauern umzingelt ist dann eine Birne platzieren
-        
-        //Alle Mauern durchgehen
-        
-    
-
-    public void placeTrivialBulbsIteration2(){
-        //When the first iteration of trivial bulbs have been places there might be new numbered wall where the number of notIlluminated has been reduced
-    }
+    }   
 }
