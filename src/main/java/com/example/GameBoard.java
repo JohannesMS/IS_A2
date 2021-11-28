@@ -32,7 +32,7 @@ public class GameBoard extends SimState {
     //Liste der Locations der nummerierten Mauern
     public ArrayList<Integer[]> numberedWallLocations = new ArrayList<Integer[]>();
     public ArrayList<Integer[]> emptyFieldLocations = new ArrayList<Integer[]>();
-    public ArrayList<Integer[]> placeableLocations = new ArrayList<Integer[]>();
+    public ArrayList<Integer[]> locationPlaceableNonTrivialBulbs = new ArrayList<Integer[]>();
     
 
     //Spielbrett als ObjectGrid2D
@@ -66,15 +66,12 @@ public class GameBoard extends SimState {
     public static void main(String[] args){
         
         //Hier würde dann mithilfe des files Array geloopt werden und die Simulation mindestens einmal pro CSV ausgeführt werden
+        
         GameBoard board = new GameBoard(System.currentTimeMillis(), 0);
         board.setFilepaths();
         board.start();
         
-    }
-
-    public void print(Object x){
-        //test
-        System.out.println(x.toString());
+        
     }
 
     public void setFilepaths(){

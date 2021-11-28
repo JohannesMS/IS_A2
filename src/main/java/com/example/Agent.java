@@ -1,6 +1,7 @@
 package com.example;
 
 import java.security.DrbgParameters.Reseed;
+import java.util.Random;
 
 import sim.engine.*;
 import sim.field.grid.ObjectGrid2D;
@@ -12,7 +13,7 @@ public class Agent implements Steppable {
 //Wie entscheidet der Spieler wo was platziert wird? -> aus Expertenwissen bedienen
 
 //Strategie 1
-//Bei einem 25x25 Feld gibt es 2 hoch 625 Kombinationen, jede könnte probiert, validiert und benutzt oder verworfen werden. Wenn ich den gesamten Speicher des Universums hätte würde das auch funktionieren
+//Bei einem 25x25 Feld gibt es 2 hoch 625 Kombinationen, jede könnte probiert, validiert und benutzt oder verworfen werden. Wenn ich den gesamten Speicher und Rechenleistung des Universums hätte würde das auch funktionieren
 //Strategie 2
 //Alle sicher platzierbaren Birnen platzieren, dann wie Strategie 1 verfahren. Reduziert den Suchbaum
 //Strategie 3
@@ -35,43 +36,13 @@ public class Agent implements Steppable {
         this.strategy = strategy;
     }
 
-
     public void step(SimState state){
         this.gameboard = (GameBoard)state;
         this.tempBoard = this.gameboard.field;
-        //if(numNotIlluminated() == 0){gameboard.finish();}
-        //System.out.println(numNotIlluminated());
-        //setBulb(0, 0);
-        System.out.println("There are "+numNotIlluminated() + " fields which are not illuminated");
-        System.out.println("There are "+numPlaceableBulbs() + " fields in which a bulb could be placed");
-        placeTrivialBulbs(2);
-        System.out.println("There are "+numNotIlluminated() + " fields which are not illuminated");
-        System.out.println("There are "+numPlaceableBulbs() + " fields in which a bulb could be placed");        
-        System.out.println("No Bulb number constraint violation: "+validateNumBulbsOnWall());
-        System.out.println("Solution validated: " + validateSolution());
-
-        locationPlaceable();
-        System.out.println("Placeable Solution List:" + gameboard.placeableLocations.size());
-
-        int tempX;
-        int tempY;
-        while(numPlaceableBulbs()!=0){
-        for(int i = 1; i<gameboard.placeableLocations.size();i++){
-            tempX = gameboard.placeableLocations.get(i)[0];
-            tempY = gameboard.placeableLocations.get(i)[1];
-            setBulb(tempX, tempY);
-        }
-    }
-    
-    System.out.println("There are "+numNotIlluminated() + " fields which are not illuminated");
-    System.out.println("There are "+numPlaceableBulbs() + " fields in which a bulb could be placed");  
         
-        
-        
-
-
-        
-
+        int num = smartStrategy(1000);
+        System.out.println(num);
+        //completeRandomStrategy();
     }
 
     public void setBulb(int x, int y){
@@ -127,7 +98,7 @@ public class Agent implements Steppable {
         return notIlluminated;
     }
 
-    public void locationPlaceable(){
+    public void setLocationPlaceableNonTrivialBulbs(){
 
         for(int x = 0; x<tempBoard.width;x++){
             for(int y = 0; y<tempBoard.height;y++){
@@ -135,7 +106,7 @@ public class Agent implements Steppable {
                     EmptyField tempField = (EmptyField) tempBoard.get(x, y);
                     if (!tempField.implaceable && !tempField.illuminated){
                         Integer[] temp = {x,y};
-                        gameboard.placeableLocations.add(temp);
+                        gameboard.locationPlaceableNonTrivialBulbs.add(temp);
                     }
                 }
             }
@@ -183,6 +154,16 @@ public class Agent implements Steppable {
         if(isOutOfBounds(x, y)){return false;}
         if(tempBoard.get(x, y).getClass() == Bulb.class){return true;}
         else{return false;}
+    }
+
+    public int numBulbs(){
+        int numBulbs = 0;
+        for(int x = 0; x<tempBoard.width;x++){
+            for(int y = 0; y<tempBoard.height;y++){
+                if(isBulb(x, y)){numBulbs++;}
+            }
+        }
+        return numBulbs;
     }
 
     public void illuminate(int x, int y){
@@ -337,4 +318,89 @@ public class Agent implements Steppable {
             }
         } while(trivialTrigger == true);
     }   
+
+    public void removeNonTrivialBulbs(){
+        int tempX;
+        int tempY;
+
+        for(int i = 0; i<gameboard.locationPlaceableNonTrivialBulbs.size();i++){
+            tempX = gameboard.locationPlaceableNonTrivialBulbs.get(i)[0];
+            tempY = gameboard.locationPlaceableNonTrivialBulbs.get(i)[1];
+            tempBoard.set(tempX, tempY, new EmptyField());
+        }
+    }
+
+    public int chaoticPlacement(boolean printEachIteration){
+        Random dice = new Random();
+        int counter = 0;
+        int tempX;
+        int tempY;
+        while(numPlaceableBulbs()!=0){
+            for(int i = 0; i<gameboard.locationPlaceableNonTrivialBulbs.size();i++){
+                tempX = gameboard.locationPlaceableNonTrivialBulbs.get(i)[0];
+                tempY = gameboard.locationPlaceableNonTrivialBulbs.get(i)[1];
+                if(dice.nextInt(2) == 0){
+                    setBulb(tempX, tempY);
+                }
+
+            
+            }
+            if(validateSolution()){
+                System.out.println("Solution found");
+                break;
+            }
+            if(numPlaceableBulbs() == 0){
+                if(printEachIteration){System.out.print(".");}
+                counter++;
+                removeNonTrivialBulbs();
+            }
+               
+        }
+
+        return counter;
+    }
+
+    public void completeRandomStrategy(){
+        setLocationPlaceableNonTrivialBulbs();
+        int numIterations = chaoticPlacement(true);
+        System.out.println("There are "+numNotIlluminated() + " fields which are not illuminated");
+        System.out.println("There are "+numPlaceableBulbs() + " fields in which a bulb could be placed"); 
+        System.out.println("Solution validated: " + validateSolution() + " after " + numIterations + " Iterations"); 
+
+    }
+
+    public int smartStrategy(int numSimulations){
+
+        int totalNumIterations = 0;
+
+        int outpouNumNotIlluminated = numNotIlluminated();
+        int outputNumPlaceableBulbs = numPlaceableBulbs();
+
+        System.out.println("There are "+numNotIlluminated() + " fields which are not illuminated");
+        System.out.println("There are "+numPlaceableBulbs() + " fields in which a bulb could be placed\n");
+        placeTrivialBulbs(2);
+        int numBulbs = numBulbs();
+        System.out.println(numBulbs + " trivial bulbs have been placed");
+
+        outpouNumNotIlluminated -= numNotIlluminated();
+        outputNumPlaceableBulbs -= numPlaceableBulbs();
+        System.out.println("Number of placeable bulbs have been reduced by " + outputNumPlaceableBulbs);
+        System.out.println("Number of fields to be illuminated have been reduced by " + outpouNumNotIlluminated);
+        System.out.println("There are "+numNotIlluminated() + " fields which are not illuminated");
+        System.out.println("There are "+numPlaceableBulbs() + " fields in which a bulb could be placed\n");        
+
+        setLocationPlaceableNonTrivialBulbs();
+
+        for(int i = 0; i<numSimulations; i++){
+            removeNonTrivialBulbs();
+            int numIterations = chaoticPlacement(true);
+            System.out.println("Solution validated: " + validateSolution() + " after " + numIterations + " Iterations\n");
+            totalNumIterations += numIterations;
+
+        }
+
+        return totalNumIterations/numSimulations;
+
+    }
 }
+
