@@ -12,14 +12,7 @@ public class GUI extends GUIState {
     
     public Display2D display;
     public JFrame displayFrame;
-    public GameBoard sim;
-    public Controller con;
-    public Console c;
     ObjectGridPortrayal2D fieldPortrayal = new ObjectGridPortrayal2D();
-
-
-
-    
     public GUI(){
         super(new GameBoard(System.currentTimeMillis(),0));
     }

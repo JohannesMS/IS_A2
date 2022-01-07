@@ -6,7 +6,6 @@ import sim.field.grid.ObjectGrid2D;
 import java.util.ArrayList;
 import java.util.Scanner;
 import java.io.*;
-import java.util.ArrayList;
 
 public class GameBoard extends SimState {
 
@@ -33,6 +32,8 @@ public class GameBoard extends SimState {
     public ArrayList<Integer[]> numberedWallLocations = new ArrayList<Integer[]>();
     public ArrayList<Integer[]> emptyFieldLocations = new ArrayList<Integer[]>();
     public ArrayList<Integer[]> locationPlaceableNonTrivialBulbs = new ArrayList<Integer[]>();
+
+    public ArrayList<ArrayList<Integer[]>> solutionspaceArrayX = new ArrayList<ArrayList<Integer[]>>();
     
 
     //Spielbrett als ObjectGrid2D
@@ -42,6 +43,10 @@ public class GameBoard extends SimState {
 
     //Das Spielfeld soll wie ein einfaches Array sein, die Spieler spawnen die Figuren an fixen stellen. Falls ein Spieler am Ursprungspunkt-2 ist kommt er auf ein neues kleines array dass die Ziellinie abbildet
     
+
+    public void finish(){
+        super.finish();
+    }
 
     public void start(){
         super.start();
@@ -60,6 +65,14 @@ public class GameBoard extends SimState {
         Agent agent = new Agent();
         schedule.scheduleOnce(agent);
         schedule.step(this);
+
+        //System.out.println(solutionspaceArrayX.get(0).get(1)[1]);
+        //System.out.println(solutionspaceArrayX.get(0).size());
+        //test = solutionspaceArrayX.get(0);
+        
+       
+        //System.out.println(test.get(0).getClass());
+        
         
     }
 
@@ -67,9 +80,14 @@ public class GameBoard extends SimState {
         
         //Hier würde dann mithilfe des files Array geloopt werden und die Simulation mindestens einmal pro CSV ausgeführt werden
         
-        GameBoard board = new GameBoard(System.currentTimeMillis(), 0);
+        for(int i=0; i<1;i++){
+        GameBoard board = new GameBoard(System.currentTimeMillis(), 1);
         board.setFilepaths();
         board.start();
+        board.finish();
+        }
+        
+        
         
         
     }
